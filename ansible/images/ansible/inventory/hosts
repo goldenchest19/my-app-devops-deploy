@@ -1,0 +1,2 @@
+[app]
+ubuntu-ssh-host-app ansible_host=ubuntu-ssh-host-app ansible_user=admin ansible_ssh_pass=securepassword

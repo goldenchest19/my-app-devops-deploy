@@ -1,0 +1,31 @@
+---
+- name: Ensure app directory exists
+  file:
+    path: /opt/myapp
+    state: directory
+
+- name: Copy JAR from ansible controller
+  copy:
+    src: /ansible/app.jar
+    dest: /opt/myapp/app.jar
+    mode: '0644'
+
+- name: Copy Dockerfile
+  copy:
+    src: Dockerfile
+    dest: /opt/myapp/Dockerfile
+
+- name: Build Docker image via docker CLI
+  shell: docker build -t myapp-image:latest .
+  args:
+    chdir: /opt/myapp
+
+- name: Stop and remove old container if exists
+  shell: docker rm -f myapp || true
+
+- name: Run updated application container
+  shell: |
+    docker run -d --name myapp \
+      --network jenkins_cicd-network \
+      -p 8085:8088 \
+      myapp-image:latest

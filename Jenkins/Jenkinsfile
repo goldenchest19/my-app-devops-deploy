@@ -4,7 +4,7 @@ pipeline {
     environment {
         NEXUS_URL = "http://nexus:8081"
         NEXUS_REPO = "maven-releases"
-        ARTIFACT_PATH = "com/myapp/my-app/1.0/my-app-1.0.jar"
+        ARTIFACT_PATH = "com/vacancy/my-app-devops-ex/0.0.2/my-app-devops-ex-0.0.2.jar"
         ARTIFACT_LOCAL = "app.jar"
         ANSIBLE_CONTAINER = "ansible"
     }
