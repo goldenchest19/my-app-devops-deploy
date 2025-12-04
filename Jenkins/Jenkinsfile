@@ -2,41 +2,54 @@ pipeline {
     agent any
 
     environment {
-        NEXUS_URL         = "http://nexus:8081"
-        NEXUS_REPO        = "maven-releases"
-        ARTIFACT_PATH     = "com/vacancy/my-app-devops-ex/0.0.2/my-app-devops-ex-0.0.2.jar"
-        ARTIFACT_LOCAL    = "app.jar"
-        ANSIBLE_CONTAINER = "ansible"
-        NEXUS             = credentials('nexus-creds') // даёт NEXUS_USR и NEXUS_PSW
+        NEXUS_URL      = "http://nexus:8081"
+        NEXUS_REPO     = "maven-releases"
+        ARTIFACT_PATH  = "com/vacancy/my-app-devops-ex/0.0.2/my-app-devops-ex-0.0.2.jar"
+        ARTIFACT_LOCAL = "app.jar"
+
+        // креденшелы на Nexus
+        NEXUS = credentials('nexus-creds')
+
+        // креденшелы на ansible (SSH)
+        ANSIBLE_SSH = credentials('ansible-ssh-key')
+        ANSIBLE_HOST = "root@ansible"
     }
 
     stages {
-        stage('Download artifact from Nexus') {
+
+        stage("Download artifact from Nexus") {
             steps {
                 sh """
                     echo "Downloading artifact from Nexus..."
                     curl -f -L -u ${NEXUS_USR}:${NEXUS_PSW} \
-                      ${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_PATH} \
-                      -o ${ARTIFACT_LOCAL}
+                        ${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_PATH} \
+                        -o ${ARTIFACT_LOCAL}
+
                     ls -lh ${ARTIFACT_LOCAL}
                 """
             }
         }
 
-        stage('Copy artifact into ansible container') {
+        stage("Copy JAR to ansible host") {
             steps {
                 sh """
-                    echo "Copy JAR into ansible container..."
-                    docker cp ${ARTIFACT_LOCAL} ${ANSIBLE_CONTAINER}:/ansible/app.jar
+                    echo "Copy JAR to ansible host..."
+                    scp -o StrictHostKeyChecking=no \
+                        -i ${ANSIBLE_SSH} \
+                        ${ARTIFACT_LOCAL} \
+                        ${ANSIBLE_HOST}:/ansible/app.jar
                 """
             }
         }
 
-        stage('Run ansible playbook') {
+        stage("Run ansible playbook on ansible host") {
             steps {
                 sh """
-                    echo "Run Ansible playbook inside ansible container..."
-                    docker exec ${ANSIBLE_CONTAINER} bash -lc 'cd /ansible && ansible-playbook -i inventory/hosts playbook.yml'
+                    echo "Running ansible-playbook on ansible host..."
+                    ssh -o StrictHostKeyChecking=no \
+                        -i ${ANSIBLE_SSH} \
+                        ${ANSIBLE_HOST} \
+                        'cd /ansible && ansible-playbook -i inventory/hosts playbook.yml'
                 """
             }
         }
