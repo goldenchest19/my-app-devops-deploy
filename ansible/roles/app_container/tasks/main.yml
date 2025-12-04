@@ -1,0 +1,38 @@
+---
+
+- name: Create app directory
+  file:
+    path: /opt/myapp
+    state: directory
+
+- name: Copy JAR from ansible controller
+  copy:
+    src: /ansible/app.jar
+    dest: /opt/myapp/app.jar
+    mode: '0644'
+
+- name: Copy Dockerfile
+  copy:
+    src: Dockerfile
+    dest: /opt/myapp/Dockerfile
+
+- name: Build application Docker image
+  community.docker.docker_image:
+    name: myapp-image
+    tag: latest
+    build:
+      path: /opt/myapp
+
+- name: Stop old container (if exists)
+  community.docker.docker_container:
+    name: myapp
+    state: absent
+
+- name: Run updated application container
+  community.docker.docker_container:
+    name: myapp
+    image: myapp-image:latest
+    state: started
+    restart_policy: always
+    published_ports:
+      - "8085:8080"

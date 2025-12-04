@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    environment {
+        NEXUS_URL = "http://nexus:8081"
+        NEXUS_REPO = "maven-releases"
+        ARTIFACT_PATH = "com/myapp/my-app/1.0/my-app-1.0.jar"
+        ARTIFACT_LOCAL = "app.jar"
+        ANSIBLE_CONTAINER = "ansible"
+    }
+
+    stages {
+
+        stage('Download artifact from Nexus') {
+            steps {
+                sh """
+                    curl -L -u admin:admin \
+                        ${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_PATH} \
+                        -o ${ARTIFACT_LOCAL}
+                """
+            }
+        }
+
+        stage('Copy artifact into ansible container') {
+            steps {
+                sh """
+                    docker cp ${ARTIFACT_LOCAL} ${ANSIBLE_CONTAINER}:/ansible/app.jar
+                """
+            }
+        }
+
+        stage('Run ansible playbook') {
+            steps {
+                sh """
+                    docker exec ${ANSIBLE_CONTAINER} ansible-playbook /ansible/playbook.yml
+                """
+            }
+        }
+    }
+}
